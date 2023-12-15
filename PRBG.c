@@ -117,27 +117,77 @@ EVP_CIPHER_CTX *_initAES(const uint8_t *password, const uint8_t *iv) {
 void _createBytes(EVP_CIPHER_CTX *ctx, const uint8_t *input, int input_len, uint8_t *output) {
     int ciphertext_len;
 
-    if (1 != EVP_EncryptUpdate(ctx, output, &input_len, input, input_len)) {
+    if (1 != EVP_EncryptUpdate(ctx, output, &ciphertext_len, input, input_len)) {
         printf("Error creating bytes2.\n");
         exit(EXIT_FAILURE);
     }
 
-    if (1 != EVP_EncryptFinal_ex(ctx, output + input_len, &ciphertext_len)) {
+    if (1 != EVP_EncryptFinal_ex(ctx, output + ciphertext_len, &ciphertext_len)) {
         printf("Error creating bytes3.\n");
         exit(EXIT_FAILURE);
     }
 }
 
+
+
+
+void _create_bytes2(const uint8_t *password, const uint8_t *iv, const uint8_t *input, int input_len, uint8_t *output){
+
+    EVP_CIPHER_CTX *ctx;
+
+    if (!(ctx = EVP_CIPHER_CTX_new())) {
+        printf("Error inicializing AES.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Prepare the key
+    uint8_t *key = malloc(sizeof(uint8_t) * 32);
+    uint8_t password_size = strlen(password);
+    if (password_size < 32) {
+        // The password is smaller than 32 bytes
+        for (int i = 0; i < 32; i++) {
+            key[i] = password[i % password_size];
+        }
+    } else {
+        // The password is bigger than 32 bytes
+        for (int i = 0; i < 32; i++) {
+            key[i] = password[i];
+        }
+    }
+
+    if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv)) {
+        printf("Error creating bytes1.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    free(key);
+
+    int ciphertext_len;
+
+    if (1 != EVP_EncryptUpdate(ctx, output, &ciphertext_len, input, input_len)) {
+        printf("Error creating bytes2.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (1 != EVP_EncryptFinal_ex(ctx, output + ciphertext_len, &ciphertext_len)) {
+        printf("Error creating bytes3.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    EVP_CIPHER_CTX_free(ctx);
+}
+
+
+
 void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string, int iteration_count, uint8_t *output) {
 
     // Initialize the PRBG with the seed
     size_t size1 = 0, size2 = 0;
-    EVP_CIPHER_CTX *ctx = _initAES(password, seed);
 
     // Inicialize the output buffer
-    uint8_t bytes [OUTPUT_BYTES + AES_BLOCK_SIZE] = "";
+    uint8_t bytes [OUTPUT_BYTES] = {0};
     if (!bytes) {
-        fprintf(stderr, "Erro ao alocar memória.\n");
+        fprintf(stderr, "Error allocating memory.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -145,9 +195,10 @@ void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string,
 
         // Find the confusion pattern
         int found = 0;
+
         while (!found) {
             // Generate the bytes
-            _createBytes(ctx, bytes, OUTPUT_BYTES, output);
+            _create_bytes2(password, seed, bytes, SEED_LEN, output);
 
             // DEBUG: Print the bytes
             // printf("Bytes generated: ");
@@ -167,6 +218,8 @@ void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string,
             }
         }
         printf("Confusion pattern found.\n");
+
+
         // DEBUG: Print the bytes
         // printf("Bytes generated: ");
         // for (int i = 0; i < size1; i++) {
@@ -182,13 +235,14 @@ void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string,
 
         // Reinitialize the PRBG with the new seed
         uint8_t new_seed[SEED_LEN];
-        _createBytes(ctx, bytes, SEED_LEN, new_seed);
-        EVP_CIPHER_CTX_free(ctx);
-        ctx = _initAES(password, new_seed);
+        _create_bytes2(password, seed, bytes, SEED_LEN, new_seed);
+        // seed = new_seed;
+        for (int i = 0; i < SEED_LEN; i++) {
+            seed[i] = new_seed[i];
+        }
     }
     // Generate the output
-    _createBytes(ctx, bytes, OUTPUT_BYTES, output);
-    EVP_CIPHER_CTX_free(ctx);
+    _create_bytes2(password, seed, bytes, OUTPUT_BYTES, output);
     EVP_cleanup();
 }
 

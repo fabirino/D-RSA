@@ -19,9 +19,12 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    strcpy(password, argv[1]);
-    strcpy(confusion_string, argv[2]);
+    strncpy(password, argv[1], strlen(argv[1]));
+    password[strlen(argv[1])] = '\0';
+    strncpy(confusion_string, argv[2], strlen(argv[2]));
+    confusion_string[strlen(argv[2])] = '\0';
     int iteration_count = atoi(argv[3]);
+
 
     // Generate the bootstrap_seed
     uint8_t bootstrap_seed[SEED_LEN];
