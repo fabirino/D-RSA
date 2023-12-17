@@ -167,6 +167,9 @@ def generate_primes(pseudo_rand_num):
     p = int.from_bytes(p_bytes, byteorder='big')
     q = int.from_bytes(q_bytes, byteorder='big')
 
+    print("p = ", p)
+    print("q = ", q)
+
     p = find_prime(p)
     q = find_prime(q)
 

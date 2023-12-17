@@ -128,10 +128,7 @@ void _createBytes(EVP_CIPHER_CTX *ctx, const uint8_t *input, int input_len, uint
     }
 }
 
-
-
-
-void _create_bytes2(const uint8_t *password, const uint8_t *iv, const uint8_t *input, int input_len, uint8_t *output){
+void _create_bytes2(const uint8_t *password, const uint8_t *iv, const uint8_t *input, int input_len, uint8_t *output) {
 
     EVP_CIPHER_CTX *ctx;
 
@@ -177,15 +174,13 @@ void _create_bytes2(const uint8_t *password, const uint8_t *iv, const uint8_t *i
     EVP_CIPHER_CTX_free(ctx);
 }
 
-
-
 void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string, int iteration_count, uint8_t *output) {
 
     // Initialize the PRBG with the seed
     size_t size1 = 0, size2 = 0;
 
     // Inicialize the output buffer
-    uint8_t bytes [OUTPUT_BYTES] = {0};
+    uint8_t bytes[OUTPUT_BYTES] = {0};
     if (!bytes) {
         fprintf(stderr, "Error allocating memory.\n");
         exit(EXIT_FAILURE);
@@ -218,7 +213,6 @@ void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string,
             }
         }
         printf("Confusion pattern found.\n");
-
 
         // DEBUG: Print the bytes
         // printf("Bytes generated: ");
@@ -266,23 +260,88 @@ uint8_t *read_msg_bytes(uint64_t *bytes_read) {
     return input_bytes;
 }
 
-RSA *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
-    RSA *rsa = RSA_new();
-    BIGNUM *e = BN_new();
 
-    // Set the exponent
+void next_prime(BIGNUM *num){
+    BIGNUM *one = BN_new();
+    BN_one(one);
+    while(!BN_is_prime(num, BN_prime_checks, NULL, NULL, NULL)){
+        BN_add(num, num, one);
+    }
+    BN_free(one);
+}
+
+RSA *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
+
+    // Divide the array in half and store the values in p and q
+    size_t half_size = 512 / 2;
+    uint8_t *p_bytes = pseudo_rand_num;
+    uint8_t *q_bytes = pseudo_rand_num + half_size;
+
+    // DEBUG:
+    // printf("p_bytes: ");
+    // for (size_t i = 0; i < half_size; i++) {
+    //     printf("%02x ", p_bytes[i]);
+    // }
+    // printf("\n");
+
+    // printf("q_bytes: ");
+    // for (size_t i = 0; i < half_size; i++) {
+    //     printf("%02x ", q_bytes[i]);
+    // }
+    // printf("\n");
+
+    // Convert the bytes to BIGNUMs
+    BIGNUM *p = BN_bin2bn(p_bytes, half_size, NULL);
+    BIGNUM *q = BN_bin2bn(q_bytes, half_size, NULL);
+    // Find the next primes after p and q
+    next_prime(p);
+    next_prime(q);
+
+    printf("p: %s\n", BN_bn2hex(p));
+    printf("q: %s\n", BN_bn2hex(q));
+
+    // Calulate n, e, d, phi, dmp1, dmq1, iqmp
+    BIGNUM *e = BN_new();
     if (!BN_set_word(e, 65537)) {
         fprintf(stderr, "Error setting the public exponent.\n");
         exit(EXIT_FAILURE);
     }
 
-    // Generate the key pair
-    if (!RSA_generate_key_ex(rsa, KEY_LENGTH, e, NULL)) {
-        fprintf(stderr, "Error generating the key pair.\n");
+    BIGNUM *n = BN_new();
+    BN_mul(n, p, q, NULL); // FIXME: Seg Fault aqui
+
+    BIGNUM *d = BN_new();
+    BIGNUM *phi = BN_new();
+    BIGNUM *p_minus_1 = BN_new();
+    BIGNUM *q_minus_1 = BN_new();
+    BN_sub(p_minus_1, p, BN_value_one());
+    BN_sub(q_minus_1, q, BN_value_one());
+    BN_mul(phi, p_minus_1, q_minus_1, NULL); // FIXME: Seg Fault aqui
+    BN_mod_inverse(d, e, phi, NULL);
+
+    
+
+    RSA *rsa = RSA_new();
+    if (rsa == NULL) {
+        perror("Failed to create RSA structure");
         exit(EXIT_FAILURE);
     }
 
-    BN_free(e);
+
+    RSA_set0_key(rsa, n, e, d);
+    RSA_set0_factors(rsa, p, q);
+
+    BIGNUM *dmp1 = BN_new();
+    BIGNUM *dmq1 = BN_new();
+    BIGNUM *iqmp = BN_new();
+
+    BN_mod(dmp1, d, p_minus_1, NULL); // dmp1 = d mod (p - 1)
+    BN_mod(dmq1, d, q_minus_1, NULL); // dmq1 = d mod (q - 1)
+    BN_mod_inverse(iqmp, q, p, NULL); // iqmp = q^(-1) mod p
+
+    RSA_set0_crt_params(rsa, dmp1, dmq1, iqmp);
+
+
     return rsa;
 }
 

@@ -1,6 +1,6 @@
 FLAGS	= -Wall -O2 -g -Wno-deprecated-declarations
 CC	= gcc
-LIBS = -lssl -lcrypto
+LIBS = -lssl -lcrypto -lgmp
 
 PROG1 = randgen
 OBJS1 = randgen.o PRBG.o

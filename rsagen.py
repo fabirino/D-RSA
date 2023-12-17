@@ -3,16 +3,30 @@ import sys
 
 if __name__ == '__main__':
     
-    pseudo_rand_bytes, bytes_read = PRBG.read_to_bytearray()
-    # print(pseudo_rand_bytes)
+    if sys.argv[1] == "-f" and len(sys.argv) == 2:
+        # Flag -f
+        pseudo_rand_bytes, bytes_read = PRBG.read_to_bytearray()
+        # print(pseudo_rand_bytes)
+    elif sys.argv[1] == "-c" and len(sys.argv) != 5:
+        # Flag -c
+        password = sys.argv[1]
+        confusion_string = sys.argv[2]
+        iteration_count = int(sys.argv[3])
 
+        bootstrap_seed = PRBG.generate_seed(password, confusion_string, iteration_count)
+
+        pseudo_rand_bytes = PRBG.generate_bytes(bootstrap_seed, password, confusion_string, iteration_count)
+    else:
+        print('Usages:\npython3 rsagen.py -c <password> <confusion_string> <iteration_count>\npython3 rsagen.py -f < <pseudo_rand_bytes>')
+        sys.exit(1)
+    
     # DEBUG: 
-    # print(len(output))
-    # print("Output: ", end="")
-    # for i in range(len(output)):
+    # print(len(pseudo_rand_bytes))
+    # print("Pseudo Rand Bytes: ", end="")
+    # for i in range(len(pseudo_rand_bytes)):
     #     if(i % 32 ==0):
     #         print()
-    #     print(hex(output[i]), end=" ")
+    #     print(hex(pseudo_rand_bytes[i]), end=" ")
     # print()
 
     # rsa_key = PRBG.generate_RSA_key_pair(bootstrap_seed, password, confusion_string, iteration_count)

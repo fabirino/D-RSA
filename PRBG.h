@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <gmp.h>
 
 #define SEED_LEN 16         // size of the seed in bytes (16 because the iv of AES is 16 bytes)
 #define OUTPUT_BYTES 32     // number of bytes to generate
@@ -40,7 +41,7 @@ void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string,
 
 uint8_t *read_msg_bytes(uint64_t *bytes_read);
 
-RSA *generate_RSA_key_pair();
+RSA *generate_RSA_key_pair(uint8_t *pseudo_rand_num);
 
 void write_private_key_to_pem(const char *filename, const char *header, const unsigned char *key, RSA *rsa_key);
 
