@@ -4,3 +4,6 @@
 # Executable files
 randgen
 rsagen
+
+# PEM files
+*.pem

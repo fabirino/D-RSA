@@ -21,6 +21,9 @@ if __name__ == '__main__':
 
     output = PRBG.generate_bytes(bootstrap_seed, password, confusion_string, iteration_count)
 
-    for i in range(PRBG.OUTPUT_BYTES):
+    print("Output: ", end="")
+    for i in range(2048):
+        if(i % 32 ==0):
+            print()
         print(hex(output[i]), end=" ")
     print()
