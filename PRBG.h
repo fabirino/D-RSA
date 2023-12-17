@@ -38,6 +38,8 @@ void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string,
 // ======================== RSAGEN ============================
 // ============================================================
 
+uint8_t *read_msg_bytes(uint64_t *bytes_read);
+
 RSA *generate_RSA_key_pair();
 
 void write_private_key_to_pem(const char *filename, const char *header, const unsigned char *key, RSA *rsa_key);

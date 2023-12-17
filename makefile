@@ -1,4 +1,4 @@
-FLAGS	= -Wall -O2 -g
+FLAGS	= -Wall -O2 -g -Wno-deprecated-declarations
 CC	= gcc
 LIBS = -lssl -lcrypto
 

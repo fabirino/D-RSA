@@ -5,6 +5,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.padding import PKCS7
 from sympy import isprime, mod_inverse
+import sys
 
 import hashlib
 
@@ -76,7 +77,8 @@ def generate_bytes(seed, password, confusion_string, iteration_count):
             # Check if the confusion pattern is present
             if new_cf in bytes_generated:
                 found = True
-                print("Confusion pattern found!")
+                # DEBUG:
+                # print("Confusion pattern found!")
             # Prepare the bytes for the next iteration
             bytes_generated = output
         # Reinicialize the PRBG with the new seed
@@ -99,6 +101,23 @@ def generate_bytes(seed, password, confusion_string, iteration_count):
 # ============================================================
 # ======================== RSAGEN ============================
 # ============================================================
+
+def read_to_bytearray():
+    '''!
+    @brief This function reads the input from stdin into a bytearray.
+    @return The bytearray containing the input and the number of bytes read.
+    '''
+
+    try:
+        # Read input from stdin into a bytearray
+        # data = bytearray(sys.stdin.buffer.read())
+        data = bytearray(sys.stdin.buffer.read())
+        bytes_read = len(data)
+
+        return data, bytes_read
+    except Exception as e:
+        print("An error occurred:", e)
+        return None, 0
 
 
 def generate_RSA_key_pair(seed, password, confusion_string, iteration_count):
@@ -167,7 +186,7 @@ def generate_key(p, q):
 
     # private_numbers = rsa.RSAPrivateNumbers(
     #     p=p, q=q, d=d, dmp1=None, dmq1=None, iqmp=None).private_key(default_backend())
-    
+
     private_key_numbers = rsa.RSAPrivateNumbers(
         p=p,
         q=q,
@@ -180,9 +199,8 @@ def generate_key(p, q):
             n=n
         )
     )
-    
+
     private_key = private_key_numbers.private_key(default_backend())
     public_key = private_key.public_key()
 
     return private_key, public_key
-

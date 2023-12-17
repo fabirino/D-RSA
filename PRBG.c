@@ -250,7 +250,23 @@ void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string,
 // ======================== RSAGEN ============================
 // ============================================================
 
-RSA *generate_RSA_key_pair() {
+uint8_t *read_msg_bytes(uint64_t *bytes_read) {
+    uint8_t aux;
+    uint8_t *input_bytes = NULL;
+
+    (*bytes_read) = 0;
+    while (fread(&aux, sizeof(uint8_t), 1, stdin) == 1) {
+        input_bytes = realloc(input_bytes, (++(*bytes_read)) * sizeof(uint8_t));
+        if (!input_bytes) {
+            fprintf(stderr, "Failed to realloc memory!\n");
+            return NULL;
+        }
+        input_bytes[(*bytes_read) - 1] = aux;
+    }
+    return input_bytes;
+}
+
+RSA *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
     RSA *rsa = RSA_new();
     BIGNUM *e = BN_new();
 

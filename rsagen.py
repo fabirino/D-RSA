@@ -3,18 +3,8 @@ import sys
 
 if __name__ == '__main__':
     
-    # Get the arguments
-    if len(sys.argv) != 4:
-        print('Usage: python3 rsagen.py <password> <confusion_string> <iteration_count>')
-        sys.exit(1)
-
-    password = sys.argv[1]
-    confusion_string = sys.argv[2]
-    iteration_count = int(sys.argv[3])
-
-    bootstrap_seed = PRBG.generate_seed(password, confusion_string, iteration_count)
-
-    output = PRBG.generate_bytes(bootstrap_seed, password, confusion_string, iteration_count)
+    pseudo_rand_bytes, bytes_read = PRBG.read_to_bytearray()
+    # print(pseudo_rand_bytes)
 
     # DEBUG: 
     # print(len(output))
@@ -29,7 +19,7 @@ if __name__ == '__main__':
     # PRBG.write_private_key_to_pem("private_key.pem", rsa_key)
     # PRBG.write_public_key_to_pem("public_key.pem", rsa_key.public_key())
 
-    p , q = PRBG.generate_primes(output)
+    p , q = PRBG.generate_primes(pseudo_rand_bytes)
     # print("p = ", p)
     # print("q = ", q)
 
@@ -37,6 +27,6 @@ if __name__ == '__main__':
     # print(private_key)
     # print(public_key)
 
-    PRBG.write_private_key_to_pem("private_key.pem", private_key)
-    PRBG.write_public_key_to_pem("public_key.pem", public_key)
+    PRBG.write_private_key_to_pem("private_key2.pem", private_key)
+    PRBG.write_public_key_to_pem("public_key2.pem", public_key)
 
