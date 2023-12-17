@@ -14,8 +14,8 @@
 #define KEY_LENGTH  2048    // RSA key length
 
 typedef struct rsa_key_pair {
-    char *public_key;
-    char *private_key;
+    unsigned char *public_key;
+    unsigned char *private_key;
 } rsa_key_pair;
 
 // ============================================================

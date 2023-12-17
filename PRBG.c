@@ -269,6 +269,47 @@ void next_prime(BIGNUM *num) {
     BN_free(one);
 }
 
+char *BN_to_base64(const BIGNUM *bn) {
+    BIO *bio_mem = BIO_new(BIO_s_mem());
+    BIO *bio_base64 = BIO_new(BIO_f_base64());
+    BIO *bio = BIO_push(bio_base64, bio_mem);
+
+    // Convertendo BIGNUM para binário
+    unsigned char *bin_data = (unsigned char *)malloc(BN_num_bytes(bn));
+    BN_bn2bin(bn, bin_data);
+
+    // Escrevendo o binário no BIO
+    if (!BIO_write(bio, bin_data, BN_num_bytes(bn))) {
+        fprintf(stderr, "Error writing to BIO\n");
+        free(bin_data);
+        exit(EXIT_FAILURE);
+    }
+
+    // Finalizar a escrita no BIO
+    BIO_flush(bio);
+
+    // Liberando a memória alocada para o binário
+    free(bin_data);
+
+    // Lendo os dados do BIO para uma string
+    BUF_MEM *bio_buf;
+    BIO_get_mem_ptr(bio, &bio_buf);
+
+    char *base64_str = malloc(bio_buf->length + 1);
+    if (!base64_str) {
+        fprintf(stderr, "Error allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+
+    memcpy(base64_str, bio_buf->data, bio_buf->length);
+    base64_str[bio_buf->length] = '\0';
+
+    BIO_free_all(bio);
+
+    return base64_str;
+}
+
+
 rsa_key_pair *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
 
     // Divide the array in half and store the values in p and q
@@ -302,8 +343,8 @@ rsa_key_pair *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
     next_prime(p);
     next_prime(q);
 
-    printf("p: %s\n", BN_bn2hex(p));
-    printf("q: %s\n", BN_bn2hex(q));
+    // printf("p: %s\n", BN_bn2hex(p));
+    // printf("q: %s\n", BN_bn2hex(q));
 
     // Calulate n, e, d, phi, dmp1, dmq1, iqmp
     BIGNUM *e = BN_new();
@@ -330,31 +371,33 @@ rsa_key_pair *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
     BN_mul(phi, p_minus_1, q_minus_1, ctx);
     BN_mod_inverse(d, e, phi, NULL);
 
-    RSA *rsa = RSA_new();
-    if (!rsa) {
-        perror("Failed to create RSA structure");
+
+    rsa_key_pair *rsa_key = malloc(sizeof(rsa_key_pair));
+    rsa_key->private_key = malloc(sizeof(char) * 2048);
+    rsa_key->public_key = malloc(sizeof(char) * 2048);
+
+    if (!rsa_key || !rsa_key->private_key || !rsa_key->public_key) {
+        fprintf(stderr, "Error allocating memory.\n");
         exit(EXIT_FAILURE);
     }
 
-    RSA_set0_key(rsa, n, e, d);
-    RSA_set0_factors(rsa, p, q);
-
-    BIGNUM *dmp1 = BN_new();
-    BIGNUM *dmq1 = BN_new();
-    BIGNUM *iqmp = BN_new();
-
-    if (!dmp1 || !dmq1 || !iqmp) {
+    // Write the private key
+    BIGNUM *public = BN_new();
+    BIGNUM *private = BN_new();
+    if (!public || !private) {
         fprintf(stderr, "Error initializing BIGNUM\n");
         exit(EXIT_FAILURE);
     }
 
-    BN_mod(dmp1, d, p_minus_1, ctx); // dmp1 = d mod (p - 1)
-    BN_mod(dmq1, d, q_minus_1, ctx); // dmq1 = d mod (q - 1)
-    BN_mod_inverse(iqmp, q, p, ctx); // iqmp = q^(-1) mod p
+    BN_add(public, n, e);
+    BN_add(private, n, d);
+    char *public_key = BN_to_base64(public);
+    char *private_key = BN_to_base64(private);
 
-    RSA_set0_crt_params(rsa, dmp1, dmq1, iqmp);
+    strcpy(rsa_key->private_key, private_key);
+    strcpy(rsa_key->public_key, public_key);
 
-    return NULL;
+    return rsa_key;
 }
 
 void write_private_key_to_pem(const char *filename, char *key) {
@@ -365,7 +408,7 @@ void write_private_key_to_pem(const char *filename, char *key) {
     }
 
     fprintf(file, "-----BEGIN RSA PRIVATE KEY-----\n");
-    // TODO:
+    fprintf(file, "%s", key);
     fprintf(file, "-----END RSA PRIVATE KEY-----\n");
 
     fclose(file);
@@ -378,9 +421,9 @@ void write_public_key_to_pem(const char *filename, char *key) {
         exit(EXIT_FAILURE);
     }
 
-    fprintf(file, "-----BEGIN RSA PRIVATE KEY-----\n");
-    // TODO:
-    fprintf(file, "-----END RSA PRIVATE KEY-----\n");
+    fprintf(file, "-----BEGIN RSA PUBLIC KEY-----\n");
+    fprintf(file, "%s", key);
+    fprintf(file, "-----END RSA PUBLIC KEY-----\n");
 
     fclose(file);
 }

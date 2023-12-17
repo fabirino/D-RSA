@@ -21,11 +21,13 @@ int main(int argc, char* argv[]){
     //     printf("%c", pseudo_rand_bytes[i]);
     // }
 
-
     rsa_key_pair *rsa_key = generate_RSA_key_pair(pseudo_rand_bytes);
 
-    write_public_key_to_pem(PUB_KEY_FILE,  "");
-    write_private_key_to_pem(PRIV_KEY_FILE, "");
+    write_public_key_to_pem(PUB_KEY_FILE,  rsa_key->public_key);
+    write_private_key_to_pem(PRIV_KEY_FILE, rsa_key->private_key);
+    free(rsa_key->public_key);
+    free(rsa_key->private_key);
+    free(rsa_key);
 
     return 0;
 }
