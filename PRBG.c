@@ -260,17 +260,16 @@ uint8_t *read_msg_bytes(uint64_t *bytes_read) {
     return input_bytes;
 }
 
-
-void next_prime(BIGNUM *num){
+void next_prime(BIGNUM *num) {
     BIGNUM *one = BN_new();
     BN_one(one);
-    while(!BN_is_prime(num, BN_prime_checks, NULL, NULL, NULL)){
+    while (!BN_is_prime(num, BN_prime_checks, NULL, NULL, NULL)) {
         BN_add(num, num, one);
     }
     BN_free(one);
 }
 
-RSA *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
+rsa_key_pair *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
 
     // Divide the array in half and store the values in p and q
     size_t half_size = 512 / 2;
@@ -291,8 +290,14 @@ RSA *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
     // printf("\n");
 
     // Convert the bytes to BIGNUMs
-    BIGNUM *p = BN_bin2bn(p_bytes, half_size, NULL);
-    BIGNUM *q = BN_bin2bn(q_bytes, half_size, NULL);
+    BIGNUM *p = BN_new();
+    BIGNUM *q = BN_new();
+    if (!q || !p) {
+        fprintf(stderr, "Error initializing BIGNUM\n");
+        exit(EXIT_FAILURE);
+    }
+    BN_bin2bn(p_bytes, half_size, p);
+    BN_bin2bn(q_bytes, half_size, q);
     // Find the next primes after p and q
     next_prime(p);
     next_prime(q);
@@ -302,31 +307,34 @@ RSA *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
 
     // Calulate n, e, d, phi, dmp1, dmq1, iqmp
     BIGNUM *e = BN_new();
-    if (!BN_set_word(e, 65537)) {
+    if (!BN_set_word(e, 65537) || !e) {
         fprintf(stderr, "Error setting the public exponent.\n");
         exit(EXIT_FAILURE);
     }
 
     BIGNUM *n = BN_new();
-    BN_mul(n, p, q, NULL); // FIXME: Seg Fault aqui
-
     BIGNUM *d = BN_new();
     BIGNUM *phi = BN_new();
     BIGNUM *p_minus_1 = BN_new();
     BIGNUM *q_minus_1 = BN_new();
-    BN_sub(p_minus_1, p, BN_value_one());
-    BN_sub(q_minus_1, q, BN_value_one());
-    BN_mul(phi, p_minus_1, q_minus_1, NULL); // FIXME: Seg Fault aqui
-    BN_mod_inverse(d, e, phi, NULL);
+    BN_CTX *ctx = BN_CTX_new();
 
-    
-
-    RSA *rsa = RSA_new();
-    if (rsa == NULL) {
-        perror("Failed to create RSA structure");
+    if (!n || !d || !phi || !p_minus_1 || !q_minus_1 || !ctx) {
+        fprintf(stderr, "Error initializing BIGNUM\n");
         exit(EXIT_FAILURE);
     }
 
+    BN_mul(n, p, q, ctx);
+    BN_sub(p_minus_1, p, BN_value_one());
+    BN_sub(q_minus_1, q, BN_value_one());
+    BN_mul(phi, p_minus_1, q_minus_1, ctx);
+    BN_mod_inverse(d, e, phi, NULL);
+
+    RSA *rsa = RSA_new();
+    if (!rsa) {
+        perror("Failed to create RSA structure");
+        exit(EXIT_FAILURE);
+    }
 
     RSA_set0_key(rsa, n, e, d);
     RSA_set0_factors(rsa, p, q);
@@ -335,44 +343,44 @@ RSA *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
     BIGNUM *dmq1 = BN_new();
     BIGNUM *iqmp = BN_new();
 
-    BN_mod(dmp1, d, p_minus_1, NULL); // dmp1 = d mod (p - 1)
-    BN_mod(dmq1, d, q_minus_1, NULL); // dmq1 = d mod (q - 1)
-    BN_mod_inverse(iqmp, q, p, NULL); // iqmp = q^(-1) mod p
+    if (!dmp1 || !dmq1 || !iqmp) {
+        fprintf(stderr, "Error initializing BIGNUM\n");
+        exit(EXIT_FAILURE);
+    }
+
+    BN_mod(dmp1, d, p_minus_1, ctx); // dmp1 = d mod (p - 1)
+    BN_mod(dmq1, d, q_minus_1, ctx); // dmq1 = d mod (q - 1)
+    BN_mod_inverse(iqmp, q, p, ctx); // iqmp = q^(-1) mod p
 
     RSA_set0_crt_params(rsa, dmp1, dmq1, iqmp);
 
-
-    return rsa;
+    return NULL;
 }
 
-void write_private_key_to_pem(const char *filename, const char *header, const unsigned char *key, RSA *rsa_key) {
-    FILE *file = fopen(filename, "w");
-    if (!file) {
-        fprintf(stderr, "Error opening the file.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    // Write the key to the file
-    if (!PEM_write_RSAPrivateKey(file, rsa_key, EVP_aes_256_cbc(), NULL, 0, NULL, key)) {
-        fprintf(stderr, "Error writing the key to the file.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    fclose(file);
-}
-
-void write_public_key_to_pem(const char *filename, const char *header, RSA *rsa_key) {
+void write_private_key_to_pem(const char *filename, char *key) {
     FILE *file = fopen(filename, "w");
     if (!file) {
         fprintf(stderr, "Error opening file: %s\n", filename);
         exit(EXIT_FAILURE);
     }
 
-    // Use PEM_write_RSA_PUBKEY to write the public key without encryption
-    if (!PEM_write_RSA_PUBKEY(file, rsa_key)) {
-        fprintf(stderr, "Error writing RSA public key to PEM file.\n");
+    fprintf(file, "-----BEGIN RSA PRIVATE KEY-----\n");
+    // TODO:
+    fprintf(file, "-----END RSA PRIVATE KEY-----\n");
+
+    fclose(file);
+}
+
+void write_public_key_to_pem(const char *filename, char *key) {
+    FILE *file = fopen(filename, "w");
+    if (!file) {
+        fprintf(stderr, "Error opening file: %s\n", filename);
         exit(EXIT_FAILURE);
     }
+
+    fprintf(file, "-----BEGIN RSA PRIVATE KEY-----\n");
+    // TODO:
+    fprintf(file, "-----END RSA PRIVATE KEY-----\n");
 
     fclose(file);
 }

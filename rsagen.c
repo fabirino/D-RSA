@@ -22,10 +22,10 @@ int main(int argc, char* argv[]){
     // }
 
 
-    RSA *rsa_key = generate_RSA_key_pair(pseudo_rand_bytes);
+    rsa_key_pair *rsa_key = generate_RSA_key_pair(pseudo_rand_bytes);
 
-    // write_public_key_to_pem(PUB_KEY_FILE, "PUBLIC KEY", rsa_key);
-    // write_private_key_to_pem(PRIV_KEY_FILE, "PRIVATE KEY", seed, rsa_key);
+    write_public_key_to_pem(PUB_KEY_FILE,  "");
+    write_private_key_to_pem(PRIV_KEY_FILE, "");
 
     return 0;
 }

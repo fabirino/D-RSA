@@ -13,6 +13,11 @@
 #define OUTPUT_BYTES 32     // number of bytes to generate
 #define KEY_LENGTH  2048    // RSA key length
 
+typedef struct rsa_key_pair {
+    char *public_key;
+    char *private_key;
+} rsa_key_pair;
+
 // ============================================================
 // ======================== RANDGEN ===========================
 // ============================================================
@@ -41,8 +46,8 @@ void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string,
 
 uint8_t *read_msg_bytes(uint64_t *bytes_read);
 
-RSA *generate_RSA_key_pair(uint8_t *pseudo_rand_num);
+rsa_key_pair *generate_RSA_key_pair(uint8_t *pseudo_rand_num);
 
-void write_private_key_to_pem(const char *filename, const char *header, const unsigned char *key, RSA *rsa_key);
+void write_private_key_to_pem(const char *filename, char *key);
 
-void write_public_key_to_pem(const char *filename, const char *header, RSA *rsa_key);
+void write_public_key_to_pem(const char *filename, char *key);
