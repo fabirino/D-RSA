@@ -37,6 +37,6 @@ if __name__ == '__main__':
     # print(private_key)
     # print(public_key)
 
-    PRBG.write_private_key_to_pem("private_key2.pem", private_key)
-    PRBG.write_public_key_to_pem("public_key2.pem", public_key)
+    PRBG.write_private_key_to_pem("private_key.pem", private_key)
+    PRBG.write_public_key_to_pem("public_key.pem", public_key)
 
