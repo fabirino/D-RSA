@@ -7,7 +7,6 @@ from cryptography.hazmat.primitives.padding import PKCS7
 from sympy import isprime, mod_inverse
 import sys
 import base64
-import hashlib
 
 SEED_LEN = 16
 OUTPUT_BYTES = 32
@@ -19,7 +18,14 @@ KEY_LENGTH = 2048
 
 
 def generate_seed(password, confusion_string, iteration_count):
-    #
+    '''!
+    @brief Generates a seed from the provided password, confusion string, and iteration count.
+    @param password The password to use.
+    @param confusion_string The confusion string to use.
+    @param iteration_count The number of iterations to use.
+    @param seed The buffer to store the generated seed in.
+    '''
+    # Use the PBKDF2 function to generate the seed
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA1(),
         salt=confusion_string.encode('utf-8'),
@@ -29,7 +35,7 @@ def generate_seed(password, confusion_string, iteration_count):
     )
     bootstrap_seed = bytearray(kdf.derive(password.encode('utf-8')))
 
-    #
+    # Add the confusion string to the seed
     for i in range(SEED_LEN):
         bootstrap_seed[i] ^= confusion_string.encode(
             'utf-8')[i % len(confusion_string)]
@@ -38,6 +44,15 @@ def generate_seed(password, confusion_string, iteration_count):
 
 
 def create_bytes(password, iv, input_data):
+
+    '''!
+    @brief Auxiliar function to create the bytes using AES
+    @param password The key to use
+    @param iv The initialize vector to use
+    @param input_data The input to use
+    @return The output bytes produced
+    '''
+
     key_size = 32
     # Preenche com zeros se a senha for menor que 32 bytes
     key = password[:key_size].ljust(key_size, b'\0')
@@ -56,6 +71,15 @@ def create_bytes(password, iv, input_data):
 
 def generate_bytes(seed, password, confusion_string, iteration_count):
 
+    '''!
+    @brief Uses a PRBG to produce a stream of random bytes
+    @param seed The seed to initialize the PRBG.
+    @param password The password to use.
+    @param confusion_string The confusion string to find.
+    @param iteration_count The number of iterations to use.
+    @return Pseudo-random stream of bytes.
+    '''
+
     bytes_generated = bytearray(OUTPUT_BYTES)
     output = bytearray()
     new_seed = seed
@@ -67,8 +91,9 @@ def generate_bytes(seed, password, confusion_string, iteration_count):
         found = False
         while (not found):
             # Generate the bytes
-            output = create_bytes(new_pass, new_seed, bytes_generated)[
-                :OUTPUT_BYTES]
+            output = create_bytes(new_pass, new_seed, bytes_generated)[:OUTPUT_BYTES]
+            
+            # DEBUG:
             # for i in range(len(output)):
             #     print(hex(output[i]), end=" ")
             # print()
@@ -78,8 +103,10 @@ def generate_bytes(seed, password, confusion_string, iteration_count):
                 found = True
                 # DEBUG:
                 # print("Confusion pattern found!")
+            
             # Prepare the bytes for the next iteration
             bytes_generated = output
+
         # Reinicialize the PRBG with the new seed
         new_seed = create_bytes(new_pass, new_seed, bytes_generated)[:SEED_LEN]
         iteration_count -= 1
@@ -90,8 +117,7 @@ def generate_bytes(seed, password, confusion_string, iteration_count):
     pseudo_rand_num = output.copy()
     for _ in range(15):     # 16 = 512 / 32; 15 = 16 - 1 because the array is already 32 bytes
         bytes_generated = output
-        output = create_bytes(new_pass, new_seed, bytes_generated)[
-            :OUTPUT_BYTES]
+        output = create_bytes(new_pass, new_seed, bytes_generated)[:OUTPUT_BYTES]
         pseudo_rand_num.extend(output)
 
     return pseudo_rand_num
@@ -120,6 +146,13 @@ def read_to_bytearray():
 
 
 def write_private_key_to_pem(filename, key):
+
+    '''!
+    @brief Writes the private key to a PEM file
+    @param filename The name of the file to write to
+    @param key The private key to write.
+    '''
+
     with open(filename, 'w') as f:
         f.write("-----BEGIN RSA PRIVATE KEY-----\n")
         f.write(f"{key}\n")
@@ -127,6 +160,13 @@ def write_private_key_to_pem(filename, key):
 
 
 def write_public_key_to_pem(filename, key):
+
+    '''!
+    @brief Writes the public key to a PEM file
+    @param filename The name of the file to write to
+    @param key The public key to write.
+    '''
+
     with open(filename, 'w') as f:
         f.write("-----BEGIN RSA PUBLIC KEY-----\n")
         f.write(f"{key}\n")
@@ -134,6 +174,13 @@ def write_public_key_to_pem(filename, key):
 
 
 def int_to_base64(num):
+
+    '''!
+    @brief Converts an integer to a base64 string
+    @param num The integer to convert
+    @return The base64 string
+    '''
+
     byte_representation = num.to_bytes(
         (num.bit_length() + 7) // 8, byteorder='big')
     base64_representation = base64.b64encode(byte_representation)
@@ -141,6 +188,13 @@ def int_to_base64(num):
 
 
 def find_prime(num):
+
+    '''!
+    @brief Finds the next prime number
+    @param num The number to start from
+    @return The next prime number
+    '''
+
     while not isprime(num):
         if (num % 2 == 0):
             num += 1
@@ -150,6 +204,12 @@ def find_prime(num):
 
 
 def generate_primes(pseudo_rand_num):
+
+    '''!
+    @brief Generates two prime numbers from the pseudo random number
+    @param pseudo_rand_num The pseudo random number
+    @return The two prime numbers
+    '''
 
     p_bytes = pseudo_rand_num[0:256]
     q_bytes = pseudo_rand_num[256:512]
@@ -167,34 +227,19 @@ def generate_primes(pseudo_rand_num):
 
 
 def generate_key(p, q):
+
+    '''!
+    @brief Generates the public and private key
+    @param p The first prime number
+    @param q The second prime number
+    @return The private and public key
+    '''
+
     n = p * q
     phi = (p - 1) * (q - 1)
 
     e = 65537
     d = mod_inverse(e, phi)
-
-    # dpm1 = d % (p - 1)
-    # dmq1 = d % (q - 1)
-    # iqmp = mod_inverse(q, p)
-
-    # private_numbers = rsa.RSAPrivateNumbers(
-    #     p=p, q=q, d=d, dmp1=None, dmq1=None, iqmp=None).private_key(default_backend())
-
-    # private_key_numbers = rsa.RSAPrivateNumbers(
-    #     p=p,
-    #     q=q,
-    #     d=d,
-    #     dmp1=dpm1,
-    #     dmq1=dmq1,
-    #     iqmp=iqmp,
-    #     public_numbers=rsa.RSAPublicNumbers(
-    #         e=e,
-    #         n=n
-    #     )
-    # )
-
-    # private_key = private_key_numbers.private_key(default_backend())
-    # public_key = private_key.public_key()
 
     public = n + e
     private = n + d

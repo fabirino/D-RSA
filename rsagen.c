@@ -3,10 +3,11 @@
 #include <stdlib.h>
 
 
-#define PUB_KEY_FILE "public_key3.pem"
-#define PRIV_KEY_FILE "private_key3.pem"
+#define PUB_KEY_FILE "public_key4.pem"
+#define PRIV_KEY_FILE "private_key4.pem"
 
 int main(int argc, char* argv[]){
+
     // Read the Pseudo Random Bytes from input
     uint64_t bytes_read;
     uint8_t *pseudo_rand_bytes = NULL;

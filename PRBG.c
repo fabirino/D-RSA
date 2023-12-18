@@ -69,64 +69,6 @@ int _compare_arrays(uint8_t *array1, size_t len1, uint8_t *array2, size_t len2) 
     return 0; // The arrays are different
 }
 
-/**
- * @brief Auxiliar function to inicialize the AES
- * @param key The key to use
- * @param iv The iv to use
- * @return The context of the AES
- */
-EVP_CIPHER_CTX *_initAES(const uint8_t *password, const uint8_t *iv) {
-    EVP_CIPHER_CTX *ctx;
-
-    if (!(ctx = EVP_CIPHER_CTX_new())) {
-        printf("Error inicializing AES.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    // Prepare the key
-    uint8_t *key = malloc(sizeof(uint8_t) * 32);
-    uint8_t password_size = strlen(password);
-    if (password_size < 32) {
-        // The password is smaller than 32 bytes
-        for (int i = 0; i < 32; i++) {
-            key[i] = password[i % password_size];
-        }
-    } else {
-        // The password is bigger than 32 bytes
-        for (int i = 0; i < 32; i++) {
-            key[i] = password[i];
-        }
-    }
-
-    if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv)) {
-        printf("Error creating bytes1.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    free(key);
-    return ctx;
-}
-
-/**
- * @brief Auxiliar function to create the bytes
- * @param ctx The context of the AES
- * @param input The input to use
- * @param input_len The length of the input
- * @param output The output to use
- */
-void _createBytes(EVP_CIPHER_CTX *ctx, const uint8_t *input, int input_len, uint8_t *output) {
-    int ciphertext_len;
-
-    if (1 != EVP_EncryptUpdate(ctx, output, &ciphertext_len, input, input_len)) {
-        printf("Error creating bytes2.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    if (1 != EVP_EncryptFinal_ex(ctx, output + ciphertext_len, &ciphertext_len)) {
-        printf("Error creating bytes3.\n");
-        exit(EXIT_FAILURE);
-    }
-}
 
 void _create_bytes2(const uint8_t *password, const uint8_t *iv, const uint8_t *input, int input_len, uint8_t *output) {
 
@@ -179,6 +121,14 @@ void handleErrors(void) {
     abort();
 }
 
+/**
+ * @brief Auxiliar function to create the bytes using AES
+ * @param password The key to use
+ * @param iv The iv to use
+ * @param input_data The input to use
+ * @param input_length The length of the input
+ * @param output The output bytes produced
+ */
 void _create_bytes3(const uint8_t *password, const uint8_t *iv, const uint8_t *input_data, size_t input_length, uint8_t *output) {
     EVP_CIPHER_CTX *ctx;
 
@@ -244,17 +194,6 @@ void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string,
 
         // DEBUG: Print the bytes
         // printf("Confusion pattern found.\n");
-        // printf("Bytes generated: ");
-        // for (int i = 0; i < size1; i++) {
-        //     printf("%02x ", bytes[i]);
-        // }
-        // printf("\n");
-        // printf("Confusion pattern: ");
-        // for (int i = 0; i < size2; i++) {
-        //     printf("%02x ", confusion_string[i]);
-        // }
-        // printf("\n");
-        // printf("\n");
 
         // Reinitialize the PRBG with the new seed
         uint8_t new_seed[SEED_LEN];
@@ -303,6 +242,10 @@ uint8_t *read_msg_bytes(uint64_t *bytes_read) {
     return input_bytes;
 }
 
+/**
+ * @brief Finds the next prime number after num
+ * @param num The number to start from
+*/
 void next_prime(BIGNUM *num) {
     BIGNUM *one = BN_new();
     BN_one(one);
@@ -312,6 +255,11 @@ void next_prime(BIGNUM *num) {
     BN_free(one);
 }
 
+/**
+ * @brief Converts a BIGNUM to a base64 string
+ * @param bn The BIGNUM to convert
+ * @return The base64 string
+*/
 char *BN_to_base64(const BIGNUM *bn) {
     BIO *bio_mem = BIO_new(BIO_s_mem());
     BIO *bio_base64 = BIO_new(BIO_f_base64());

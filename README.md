@@ -24,8 +24,7 @@ sudo apt-get install libgmp-dev     # C library used for big numbers
 ```
 
 ```
-./rsagen -c <password> <confusion_string> <iteration_count>
-./rsagen -f < <input_file>
+./rsagen  < <input_file>
 ```
 
 #### Python
@@ -35,6 +34,8 @@ python3 randgen.py <password> <confusion_string> <iteration_count> > <destinatio
 ```
 
 ```
-python3 rsagen.py -c <password> <confusion_string> <iteration_count>
-python3 rsagen -f < <input_file>
+python3 rsagen < <input_file>
 ```
+
+Preferably the <input_file> of the rsagen applications should be the same as the <destination_file> used in the randgen applications
+

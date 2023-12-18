@@ -15,6 +15,7 @@ if __name__ == '__main__':
 
     bootstrap_seed = PRBG.generate_seed(password, confusion_string, iteration_count)
 
+    # DEBUG:
     # for i in range(PRBG.SEED_LEN):
     #     print(hex(bootstrap_seed[i]), end=" ")
     # print()
