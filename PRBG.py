@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.padding import PKCS7
 from sympy import isprime, mod_inverse
 import sys
-
+import base64
 import hashlib
 
 SEED_LEN = 16
@@ -67,7 +67,8 @@ def generate_bytes(seed, password, confusion_string, iteration_count):
         found = False
         while (not found):
             # Generate the bytes
-            output = create_bytes(new_pass, new_seed, bytes_generated)[:OUTPUT_BYTES]
+            output = create_bytes(new_pass, new_seed, bytes_generated)[
+                :OUTPUT_BYTES]
             # for i in range(len(output)):
             #     print(hex(output[i]), end=" ")
             # print()
@@ -89,7 +90,8 @@ def generate_bytes(seed, password, confusion_string, iteration_count):
     pseudo_rand_num = output.copy()
     for _ in range(15):     # 16 = 512 / 32; 15 = 16 - 1 because the array is already 32 bytes
         bytes_generated = output
-        output = create_bytes(new_pass, new_seed, bytes_generated)[:OUTPUT_BYTES]
+        output = create_bytes(new_pass, new_seed, bytes_generated)[
+            :OUTPUT_BYTES]
         pseudo_rand_num.extend(output)
 
     return pseudo_rand_num
@@ -118,22 +120,24 @@ def read_to_bytearray():
 
 
 def write_private_key_to_pem(filename, key):
-    with open(filename, 'wb') as f:
-        pem = key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.NoEncryption(),
-        )
-        f.write(pem)
+    with open(filename, 'w') as f:
+        f.write("-----BEGIN RSA PRIVATE KEY-----\n")
+        f.write(f"{key}\n")
+        f.write("-----END RSA PRIVATE KEY-----\n")
 
 
 def write_public_key_to_pem(filename, key):
-    with open(filename, 'wb') as f:
-        pem = key.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
-        )
-        f.write(pem)
+    with open(filename, 'w') as f:
+        f.write("-----BEGIN RSA PUBLIC KEY-----\n")
+        f.write(f"{key}\n")
+        f.write("-----END RSA PUBLIC KEY-----\n")
+
+
+def int_to_base64(num):
+    byte_representation = num.to_bytes(
+        (num.bit_length() + 7) // 8, byteorder='big')
+    base64_representation = base64.b64encode(byte_representation)
+    return base64_representation.decode('utf-8')
 
 
 def find_prime(num):
@@ -169,27 +173,33 @@ def generate_key(p, q):
     e = 65537
     d = mod_inverse(e, phi)
 
-    dpm1 = d % (p - 1)
-    dmq1 = d % (q - 1)
-    iqmp = mod_inverse(q, p)
+    # dpm1 = d % (p - 1)
+    # dmq1 = d % (q - 1)
+    # iqmp = mod_inverse(q, p)
 
     # private_numbers = rsa.RSAPrivateNumbers(
     #     p=p, q=q, d=d, dmp1=None, dmq1=None, iqmp=None).private_key(default_backend())
 
-    private_key_numbers = rsa.RSAPrivateNumbers(
-        p=p,
-        q=q,
-        d=d,
-        dmp1=dpm1,
-        dmq1=dmq1,
-        iqmp=iqmp,
-        public_numbers=rsa.RSAPublicNumbers(
-            e=e,
-            n=n
-        )
-    )
+    # private_key_numbers = rsa.RSAPrivateNumbers(
+    #     p=p,
+    #     q=q,
+    #     d=d,
+    #     dmp1=dpm1,
+    #     dmq1=dmq1,
+    #     iqmp=iqmp,
+    #     public_numbers=rsa.RSAPublicNumbers(
+    #         e=e,
+    #         n=n
+    #     )
+    # )
 
-    private_key = private_key_numbers.private_key(default_backend())
-    public_key = private_key.public_key()
+    # private_key = private_key_numbers.private_key(default_backend())
+    # public_key = private_key.public_key()
+
+    public = n + e
+    private = n + d
+
+    private_key = int_to_base64(private)
+    public_key = int_to_base64(public)
 
     return private_key, public_key

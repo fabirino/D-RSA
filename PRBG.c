@@ -385,8 +385,8 @@ rsa_key_pair *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
     next_prime(p);
     next_prime(q);
 
-    printf("p: %s\n", BN_bn2hex(p));
-    printf("q: %s\n", BN_bn2hex(q));
+    // printf("p: %s\n", BN_bn2hex(p));
+    // printf("q: %s\n", BN_bn2hex(q));
 
     // Calulate n, e, d, phi, dmp1, dmq1, iqmp
     BIGNUM *e = BN_new();

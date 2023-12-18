@@ -34,8 +34,8 @@ if __name__ == '__main__':
     # PRBG.write_public_key_to_pem("public_key.pem", rsa_key.public_key())
 
     p , q = PRBG.generate_primes(pseudo_rand_bytes)
-    print("p = ", p)
-    print("q = ", q)
+    # print("p = ", p)
+    # print("q = ", q)
 
     private_key, public_key = PRBG.generate_key(p, q)
     # print(private_key)
