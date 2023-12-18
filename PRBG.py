@@ -51,7 +51,6 @@ def create_bytes(password, iv, input_data):
     padded_data = padder.update(input_data) + padder.finalize()
 
     ciphertext = encryptor.update(padded_data) + encryptor.finalize()
-
     return bytearray(ciphertext)
 
 
@@ -68,8 +67,7 @@ def generate_bytes(seed, password, confusion_string, iteration_count):
         found = False
         while (not found):
             # Generate the bytes
-            output = create_bytes(new_pass, new_seed, bytes_generated)[
-                :OUTPUT_BYTES]
+            output = create_bytes(new_pass, new_seed, bytes_generated)[:OUTPUT_BYTES]
             # for i in range(len(output)):
             #     print(hex(output[i]), end=" ")
             # print()
@@ -91,8 +89,7 @@ def generate_bytes(seed, password, confusion_string, iteration_count):
     pseudo_rand_num = output.copy()
     for _ in range(15):     # 16 = 512 / 32; 15 = 16 - 1 because the array is already 32 bytes
         bytes_generated = output
-        output = create_bytes(new_pass, new_seed, bytes_generated)[
-            :OUTPUT_BYTES]
+        output = create_bytes(new_pass, new_seed, bytes_generated)[:OUTPUT_BYTES]
         pseudo_rand_num.extend(output)
 
     return pseudo_rand_num
@@ -118,17 +115,6 @@ def read_to_bytearray():
     except Exception as e:
         print("An error occurred:", e)
         return None, 0
-
-
-def generate_RSA_key_pair(seed, password, confusion_string, iteration_count):
-
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=KEY_LENGTH,
-        backend=default_backend(),
-    )
-
-    return private_key
 
 
 def write_private_key_to_pem(filename, key):
@@ -161,14 +147,14 @@ def find_prime(num):
 
 def generate_primes(pseudo_rand_num):
 
-    p_bytes = pseudo_rand_num[:256]
-    q_bytes = pseudo_rand_num[256:]
+    p_bytes = pseudo_rand_num[0:256]
+    q_bytes = pseudo_rand_num[256:512]
 
     p = int.from_bytes(p_bytes, byteorder='big')
     q = int.from_bytes(q_bytes, byteorder='big')
 
-    print("p = ", p)
-    print("q = ", q)
+    # print("p = ", p)
+    # print("q = ", q)
 
     p = find_prime(p)
     q = find_prime(q)

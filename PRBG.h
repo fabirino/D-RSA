@@ -12,6 +12,8 @@
 #define SEED_LEN 16         // size of the seed in bytes (16 because the iv of AES is 16 bytes)
 #define OUTPUT_BYTES 32     // number of bytes to generate
 #define KEY_LENGTH  2048    // RSA key length
+#define AES_KEY_SIZE 32
+#define AES_BLOCK_SIZE 16
 
 typedef struct rsa_key_pair {
     unsigned char *public_key;
@@ -38,7 +40,7 @@ int compare_arrays(uint8_t *array1, size_t len1, uint8_t *array2, size_t len2);
  * @param seed The seed to initialize the PRBG.
  * @param output The buffer to store the generated pseudo-random bytes.
  */
-void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string, int iteration_count, uint8_t *output);
+void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string, int iteration_count, uint8_t *PRB);
 
 // ============================================================
 // ======================== RSAGEN ============================

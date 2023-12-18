@@ -174,10 +174,39 @@ void _create_bytes2(const uint8_t *password, const uint8_t *iv, const uint8_t *i
     EVP_CIPHER_CTX_free(ctx);
 }
 
-void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string, int iteration_count, uint8_t *output) {
+void handleErrors(void) {
+    ERR_print_errors_fp(stderr);
+    abort();
+}
+
+void _create_bytes3(const uint8_t *password, const uint8_t *iv, const uint8_t *input_data, size_t input_length, uint8_t *output) {
+    EVP_CIPHER_CTX *ctx;
+
+    int len;
+    int ciphertext_len;
+
+    if (!(ctx = EVP_CIPHER_CTX_new()))
+        handleErrors();
+
+    if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, password, iv))
+        handleErrors();
+
+    if (1 != EVP_EncryptUpdate(ctx, output, &len, input_data, input_length))
+        handleErrors();
+    ciphertext_len = len;
+
+    if (1 != EVP_EncryptFinal_ex(ctx, output + len, &len))
+        handleErrors();
+    ciphertext_len += len;
+
+    EVP_CIPHER_CTX_free(ctx);
+}
+
+void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string, int iteration_count, uint8_t *PRB) {
 
     // Initialize the PRBG with the seed
-    size_t size1 = 0, size2 = 0;
+    uint8_t output[32] = {0};
+    size_t size = 0;
 
     // Inicialize the output buffer
     uint8_t bytes[OUTPUT_BYTES] = {0};
@@ -193,7 +222,7 @@ void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string,
 
         while (!found) {
             // Generate the bytes
-            _create_bytes2(password, seed, bytes, SEED_LEN, output);
+            _create_bytes3(password, seed, bytes, OUTPUT_BYTES, output);
 
             // DEBUG: Print the bytes
             // printf("Bytes generated: ");
@@ -203,18 +232,18 @@ void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string,
             // printf("\n");
 
             // Check if the confusion pattern is present
-            size1 = 32;
-            size2 = strlen(confusion_string);
-            found = _compare_arrays(output, size1, confusion_string, size2);
+            size = strlen(confusion_string);
+            found = _compare_arrays(output, OUTPUT_BYTES, confusion_string, size);
 
             // Prepare the bytes for the next iteration
             for (int i = 0; i < OUTPUT_BYTES; i++) {
                 bytes[i] = output[i];
             }
+            memset(output, 0, OUTPUT_BYTES);
         }
-        printf("Confusion pattern found.\n");
 
         // DEBUG: Print the bytes
+        // printf("Confusion pattern found.\n");
         // printf("Bytes generated: ");
         // for (int i = 0; i < size1; i++) {
         //     printf("%02x ", bytes[i]);
@@ -229,14 +258,28 @@ void generate_bytes(uint8_t *seed, uint8_t *password, uint8_t *confusion_string,
 
         // Reinitialize the PRBG with the new seed
         uint8_t new_seed[SEED_LEN];
-        _create_bytes2(password, seed, bytes, SEED_LEN, new_seed);
+        _create_bytes3(password, seed, bytes, SEED_LEN, new_seed);
         // seed = new_seed;
         for (int i = 0; i < SEED_LEN; i++) {
             seed[i] = new_seed[i];
         }
+        memset(new_seed, 0, SEED_LEN);
     }
+
     // Generate the output
-    _create_bytes2(password, seed, bytes, OUTPUT_BYTES, output);
+    for (int i = 0; i < 16; i++) {
+        // Create 32 bytes 16 times and store them in the PRB (512 bytes == 4046 bits)
+        _create_bytes3(password, seed, bytes, OUTPUT_BYTES, output);
+
+        for (int j = 0; j < OUTPUT_BYTES; j++) {
+            PRB[i * OUTPUT_BYTES + j] = output[j];
+        }
+
+        for (int j = 0; j < OUTPUT_BYTES; j++) {
+            bytes[j] = output[j];
+        }
+    }
+
     EVP_cleanup();
 }
 
@@ -309,7 +352,6 @@ char *BN_to_base64(const BIGNUM *bn) {
     return base64_str;
 }
 
-
 rsa_key_pair *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
 
     // Divide the array in half and store the values in p and q
@@ -343,8 +385,8 @@ rsa_key_pair *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
     next_prime(p);
     next_prime(q);
 
-    // printf("p: %s\n", BN_bn2hex(p));
-    // printf("q: %s\n", BN_bn2hex(q));
+    printf("p: %s\n", BN_bn2hex(p));
+    printf("q: %s\n", BN_bn2hex(q));
 
     // Calulate n, e, d, phi, dmp1, dmq1, iqmp
     BIGNUM *e = BN_new();
@@ -370,7 +412,6 @@ rsa_key_pair *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
     BN_sub(q_minus_1, q, BN_value_one());
     BN_mul(phi, p_minus_1, q_minus_1, ctx);
     BN_mod_inverse(d, e, phi, NULL);
-
 
     rsa_key_pair *rsa_key = malloc(sizeof(rsa_key_pair));
     rsa_key->private_key = malloc(sizeof(char) * 2048);
