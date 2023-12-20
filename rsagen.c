@@ -8,6 +8,11 @@
 
 int main(int argc, char* argv[]){
 
+    if(argc != 1){
+        printf("Usage: ./rsagen < <input_file>\n");
+        return 1;
+    }
+
     // Read the Pseudo Random Bytes from input
     uint64_t bytes_read;
     uint8_t *pseudo_rand_bytes = NULL;

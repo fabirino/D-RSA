@@ -155,7 +155,8 @@ def write_private_key_to_pem(filename, key):
 
     with open(filename, 'w') as f:
         f.write("-----BEGIN RSA PRIVATE KEY-----\n")
-        f.write(f"{key}\n")
+        for i in range(0, len(key), 64):
+            f.write(key[i:i+64] + '\n')
         f.write("-----END RSA PRIVATE KEY-----\n")
 
 
@@ -169,7 +170,8 @@ def write_public_key_to_pem(filename, key):
 
     with open(filename, 'w') as f:
         f.write("-----BEGIN RSA PUBLIC KEY-----\n")
-        f.write(f"{key}\n")
+        for i in range(0, len(key), 64):
+            f.write(key[i:i+64] + '\n')
         f.write("-----END RSA PUBLIC KEY-----\n")
 
 
@@ -241,10 +243,10 @@ def generate_key(p, q):
     e = 65537
     d = mod_inverse(e, phi)
 
-    public = n + e
-    private = n + d
+    public = n.to_bytes((n.bit_length() + 7) // 8, byteorder='big') + e.to_bytes((e.bit_length() + 7) // 8, byteorder='big')
+    private = n.to_bytes((n.bit_length() + 7) // 8, byteorder='big') + d.to_bytes((d.bit_length() + 7) // 8, byteorder='big')
 
-    private_key = int_to_base64(private)
-    public_key = int_to_base64(public)
+    private_key = base64.b64encode(private).decode('utf-8')
+    public_key = base64.b64encode(public).decode('utf-8')
 
     return private_key, public_key

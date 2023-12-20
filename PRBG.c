@@ -69,7 +69,6 @@ int _compare_arrays(uint8_t *array1, size_t len1, uint8_t *array2, size_t len2) 
     return 0; // The arrays are different
 }
 
-
 void _create_bytes2(const uint8_t *password, const uint8_t *iv, const uint8_t *input, int input_len, uint8_t *output) {
 
     EVP_CIPHER_CTX *ctx;
@@ -245,7 +244,7 @@ uint8_t *read_msg_bytes(uint64_t *bytes_read) {
 /**
  * @brief Finds the next prime number after num
  * @param num The number to start from
-*/
+ */
 void next_prime(BIGNUM *num) {
     BIGNUM *one = BN_new();
     BN_one(one);
@@ -256,48 +255,35 @@ void next_prime(BIGNUM *num) {
 }
 
 /**
- * @brief Converts a BIGNUM to a base64 string
- * @param bn The BIGNUM to convert
+ * @brief Converts a stream of bytes to base64
+ * @param bytes The bytes to convert
+ * @param size The size of the bytes
  * @return The base64 string
-*/
-char *BN_to_base64(const BIGNUM *bn) {
-    BIO *bio_mem = BIO_new(BIO_s_mem());
-    BIO *bio_base64 = BIO_new(BIO_f_base64());
-    BIO *bio = BIO_push(bio_base64, bio_mem);
+ */
+uint8_t *bytes_to_base64(uint8_t *bytes, size_t size) {
+    // Codifica em Base64
+    BIO *b64 = BIO_new(BIO_f_base64());
+    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
+    BIO *bio = BIO_new(BIO_s_mem());
+    BIO_push(b64, bio);
 
-    // Convertendo BIGNUM para binário
-    unsigned char *bin_data = (unsigned char *)malloc(BN_num_bytes(bn));
-    BN_bn2bin(bn, bin_data);
+    BIO_write(b64, bytes, size);
+    BIO_flush(b64);
 
-    // Escrevendo o binário no BIO
-    if (!BIO_write(bio, bin_data, BN_num_bytes(bn))) {
-        fprintf(stderr, "Error writing to BIO\n");
-        free(bin_data);
+    BUF_MEM *bptr;
+    BIO_get_mem_ptr(b64, &bptr);
+
+    // Alocar espaço suficiente para a string Base64
+    char *base64_encoded = malloc(bptr->length + 1);
+    if (!base64_encoded) {
+        fprintf(stderr, "Error allocating memory.\n");
         exit(EXIT_FAILURE);
     }
+    memcpy(base64_encoded, bptr->data, bptr->length);
+    base64_encoded[bptr->length] = '\0';
 
-    // Finalizar a escrita no BIO
-    BIO_flush(bio);
-
-    // Liberando a memória alocada para o binário
-    free(bin_data);
-
-    // Lendo os dados do BIO para uma string
-    BUF_MEM *bio_buf;
-    BIO_get_mem_ptr(bio, &bio_buf);
-
-    char *base64_str = malloc(bio_buf->length + 1);
-    if (!base64_str) {
-        fprintf(stderr, "Error allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
-
-    memcpy(base64_str, bio_buf->data, bio_buf->length);
-    base64_str[bio_buf->length] = '\0';
-
-    BIO_free_all(bio);
-
-    return base64_str;
+    BIO_free_all(b64);
+    return base64_encoded;
 }
 
 rsa_key_pair *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
@@ -378,13 +364,68 @@ rsa_key_pair *generate_RSA_key_pair(uint8_t *pseudo_rand_num) {
         exit(EXIT_FAILURE);
     }
 
-    BN_add(public, n, e);
-    BN_add(private, n, d);
-    char *public_key = BN_to_base64(public);
-    char *private_key = BN_to_base64(private);
+    // Converter o BIGNUM n para bytes
+    size_t n_size = BN_num_bytes(n);
+    uint8_t *n_bytes = malloc(n_size);
+    if (!n_bytes) {
+        fprintf(stderr, "Error allocating memory.\n");
+        exit(EXIT_FAILURE);
+    }
+    BN_bn2bin(n, n_bytes);
+
+    // Converter o BIGNUM e para bytes
+    size_t e_size = BN_num_bytes(e);
+    uint8_t *e_bytes = malloc(e_size);
+    if (!e_bytes) {
+        fprintf(stderr, "Error allocating memory.\n");
+        exit(EXIT_FAILURE);
+    }
+    BN_bn2bin(e, e_bytes);
+
+    // Converter o BIGNUM d para bytes
+    size_t d_size = BN_num_bytes(d);
+    uint8_t *d_bytes = malloc(d_size);
+    if (!d_bytes) {
+        fprintf(stderr, "Error allocating memory.\n");
+        exit(EXIT_FAILURE);
+    }
+    BN_bn2bin(d, d_bytes);
+
+    // Concatenar os bytes de n e e
+    size_t concat_size_pub = n_size + e_size;
+    uint8_t *concat_pub = malloc(concat_size_pub);
+    if (!concat_pub) {
+        fprintf(stderr, "Error allocating memory.\n");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(concat_pub, n_bytes, n_size);
+    memcpy(concat_pub + n_size, e_bytes, e_size);
+
+    // Concatenar os bytes de n e d
+    size_t concat_size_priv = n_size + d_size;
+    uint8_t *concat_priv = malloc(concat_size_priv);
+    if (!concat_priv) {
+        fprintf(stderr, "Error allocating memory.\n");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(concat_priv, n_bytes, n_size);
+    memcpy(concat_priv + n_size, d_bytes, d_size);
+
+    char *public_key = NULL;
+    public_key = bytes_to_base64(concat_pub, concat_size_pub);
+    char *private_key = NULL;
+    private_key = bytes_to_base64(concat_priv, concat_size_priv);
 
     strcpy(rsa_key->private_key, private_key);
     strcpy(rsa_key->public_key, public_key);
+
+    free(n_bytes);
+    free(e_bytes);
+    free(d_bytes);
+    free(concat_pub);
+    free(concat_priv);
+    free(public_key);
+    free(private_key);
 
     return rsa_key;
 }
@@ -397,7 +438,12 @@ void write_private_key_to_pem(const char *filename, char *key) {
     }
 
     fprintf(file, "-----BEGIN RSA PRIVATE KEY-----\n");
-    fprintf(file, "%s", key);
+
+    size_t key_length = strlen(key);
+    size_t segment_length = 64;
+    for (size_t i = 0; i < key_length; i += segment_length) {
+        fprintf(file, "%.*s\n", (int)(i + segment_length > key_length ? key_length - i : segment_length), key + i);
+    }
     fprintf(file, "-----END RSA PRIVATE KEY-----\n");
 
     fclose(file);
@@ -411,7 +457,12 @@ void write_public_key_to_pem(const char *filename, char *key) {
     }
 
     fprintf(file, "-----BEGIN RSA PUBLIC KEY-----\n");
-    fprintf(file, "%s", key);
+
+    size_t key_length = strlen(key);
+    size_t segment_length = 64;
+    for (size_t i = 0; i < key_length; i += segment_length) {
+        fprintf(file, "%.*s\n", (int)(i + segment_length > key_length ? key_length - i : segment_length), key + i);
+    }
     fprintf(file, "-----END RSA PUBLIC KEY-----\n");
 
     fclose(file);
