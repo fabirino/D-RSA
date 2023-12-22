@@ -62,10 +62,10 @@ def create_bytes(password, iv, input_data):
     encryptor = cipher.encryptor()
 
     # Adiciona padding aos dados de entrada
-    padder = PKCS7(algorithms.AES.block_size).padder()
-    padded_data = padder.update(input_data) + padder.finalize()
+    # padder = PKCS7(algorithms.AES.block_size).padder()
+    # padded_data = padder.update(input_data) + padder.finalize()
 
-    ciphertext = encryptor.update(padded_data) + encryptor.finalize()
+    ciphertext = encryptor.update(input_data) + encryptor.finalize()
     return bytearray(ciphertext)
 
 
