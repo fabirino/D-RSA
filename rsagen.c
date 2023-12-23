@@ -1,4 +1,12 @@
-#include "PRBG.h"
+/**
+ * @file PRBG.h
+ * @brief Generates a pair of RSA keys and writes them to a PEM file.
+ * @author Fábio Santos 1188351
+ * @author Rodrigo Marques 118587
+ * @date 23/12/2023
+*/
+
+#include "D-RSA.h"
 #include <stdio.h>
 #include <stdlib.h>
 

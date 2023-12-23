@@ -1,4 +1,12 @@
-#include "PRBG.h"
+/**
+ * @file PRBG.h
+ * @brief Measure the time it takes to perform a seed generation with PBKDF2.
+ * @author Fábio Santos 1188351
+ * @author Rodrigo Marques 118587
+ * @date 23/12/2023
+*/
+
+#include "D-RSA.h"
 #include <stdio.h>
 #include <stdlib.h>
 

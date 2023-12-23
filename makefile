@@ -3,13 +3,13 @@ CC	= gcc
 LIBS = -lssl -lcrypto -lgmp
 
 PROG1 = randgen
-OBJS1 = randgen.o PRBG.o
+OBJS1 = randgen.o d-rsa.o
 
 PROG2 = rsagen
-OBJS2 = rsagen.o PRBG.o
+OBJS2 = rsagen.o d-rsa.o
 
 PROG3 = time_seed
-OBJS3 = time_seed.o PRBG.o
+OBJS3 = time_seed.o d-rsa.o
 
 ###############################################
 
@@ -30,19 +30,19 @@ clean:
 
 ###############################################
 
-PRBG.o: PRBG.c PRBG.h
+d-rsa.o: d-rsa.c d-rsa.h
 
 # randgen
-randgen.o: randgen.c PRBG.c
+randgen.o: randgen.c d-rsa.c
 
-randgen: randgen.o PRBG.o
+randgen: randgen.o d-rsa.o
 
 # rsagen
-rsagen.o: rsagen.c PRBG.c
+rsagen.o: rsagen.c d-rsa.c
 
-rsagen: rsagen.o PRBG.o
+rsagen: rsagen.o d-rsa.o
 
 # time_seed
-time_seed.o: time_seed.c PRBG.c
+time_seed.o: time_seed.c d-rsa.c
 
-time_seed: time_seed.o PRBG.o
+time_seed: time_seed.o d-rsa.o

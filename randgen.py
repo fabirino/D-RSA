@@ -1,4 +1,10 @@
-import PRBG
+"""!
+@author Fábio Santos 118351
+@author Rodrigo Marques 118587
+@date 23/12/2023
+"""
+
+import DRSA
 import sys
 
 
@@ -13,14 +19,14 @@ if __name__ == '__main__':
     confusion_string = sys.argv[2]
     iteration_count = int(sys.argv[3])
 
-    bootstrap_seed = PRBG.generate_seed(password, confusion_string, iteration_count)
+    bootstrap_seed = DRSA.generate_seed(password, confusion_string, iteration_count)
 
     # DEBUG:
     # for i in range(PRBG.SEED_LEN):
     #     print(hex(bootstrap_seed[i]), end=" ")
     # print()
 
-    output = PRBG.generate_bytes(bootstrap_seed, password, confusion_string, iteration_count)
+    output = DRSA.generate_bytes(bootstrap_seed, password, confusion_string, iteration_count)
 
     # DEBUG:
     # print("Output: ", end="")
