@@ -20,6 +20,6 @@ if __name__ == '__main__':
 
     private_key, public_key = PRBG.generate_key(p, q)
 
-    PRBG.write_private_key_to_pem("private_key1.pem", private_key)
-    PRBG.write_public_key_to_pem("public_key1.pem", public_key)
+    PRBG.write_private_key_to_pem("private_key.pem", private_key)
+    PRBG.write_public_key_to_pem("public_key.pem", public_key)
 

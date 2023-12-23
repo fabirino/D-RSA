@@ -23,6 +23,7 @@ To run the PRBG you need to call one of the randgen applications with 3 paramete
 To generate the key pairs and store it in the correspondent PEM files, you need to execute one of the rsagen programs. These programs take as input the pseudo-random bytes generated in the previous step.
 
 #### C
+To compile all the C files, simply use the makefile provided in the project's folder. 
 
 ```
 ./randgen <password> <confusion_string> <iteration_count> > <destination_file>
@@ -44,3 +45,11 @@ python3 rsagen < <input_file>
 
 Preferably, the <input_file> of the rsagen applications should be the same as the <destination_file> used in the randgen applications
 
+
+### Performance (bootstrap seed)
+
+The code in the time_seed.c is exactly the same as the setup of the randgen.c, i. e., the code of generating the bootstrap seed with the PBKDF2. To measure the time it takes to creating the bootstrap seed we can use the following command:
+
+```
+time ./time_seed <password> <confusion_string> <iteration_count>
+```

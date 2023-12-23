@@ -225,6 +225,9 @@ def generate_primes(pseudo_rand_num):
     p = find_prime(p)
     q = find_prime(q)
 
+    # print(p.bit_length())
+    # print(q.bit_length())
+
     return p, q
 
 

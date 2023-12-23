@@ -3,8 +3,8 @@
 #include <stdlib.h>
 
 
-#define PUB_KEY_FILE "public_key4.pem"
-#define PRIV_KEY_FILE "private_key4.pem"
+#define PUB_KEY_FILE "public_key2.pem"
+#define PRIV_KEY_FILE "private_key2.pem"
 
 int main(int argc, char* argv[]){
 

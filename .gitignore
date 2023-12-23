@@ -4,6 +4,7 @@
 # Executable files
 randgen
 rsagen
+time_seed
 
 # PEM files
 *.pem
